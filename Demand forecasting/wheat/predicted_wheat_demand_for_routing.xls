@@ -1,0 +1,10 @@
+location,crop,predicted_demand_kg
+Delhi,Wheat,2812.23
+Faridabad,Wheat,1524.45
+Ghaziabad,Wheat,1708.82
+Gurugram,Wheat,1581.11
+Meerut,Wheat,1623.2
+Noida,Wheat,1795.67
+Panipat,Wheat,1365.26
+Rohtak,Wheat,1305.23
+Sonipat,Wheat,1428.38
