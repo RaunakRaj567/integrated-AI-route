@@ -1,50 +1,84 @@
 // frontend/src/components/Header.jsx
 import React from 'react';
-import { Truck, Sprout, Activity, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Sprout } from 'lucide-react';
 
 export default function Header({ backendConnected }) {
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-        
-        {/* Brand & Logo */}
-        <div className="flex items-center space-x-3">
-          <div className="bg-emerald-600 text-white p-2 rounded-lg shadow-sm flex items-center justify-center">
-            <Sprout className="w-6 h-6" />
+    <header style={{
+      background: 'var(--bg-raised)',
+      borderBottom: '1.5px solid var(--beige-border)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 30,
+    }}>
+      <div style={{
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '0.9rem 2rem',
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center',
+        gap: '1rem',
+      }}>
+        {/* Left — Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            width: 36, height: 36,
+            background: 'var(--green-deep)',
+            borderRadius: 'var(--radius-sm)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Sprout size={18} color="#FBF8F2" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">AgriRoute AI</h1>
-              <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
-                CVRP Optimizer
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">
-              Demand Forecasting & Multi-Vehicle Delivery Optimization
+            <h1 className="font-display" style={{
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: 'var(--text-ink)',
+              lineHeight: 1.1,
+              margin: 0,
+            }}>
+              AgriRoute <em style={{ color: 'var(--green-mid)', fontStyle: 'italic' }}>AI</em>
+            </h1>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-faint)', margin: 0, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Demand Forecasting & Multi-Vehicle Logistics
             </p>
           </div>
         </div>
 
-        {/* Backend Status Badge */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-xs font-medium px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200">
-            {backendConnected ? (
-              <>
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <span className="text-emerald-700 font-semibold">FastAPI Connected</span>
-              </>
-            ) : (
-              <>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                <span className="text-amber-700 font-medium">Connecting...</span>
-              </>
-            )}
-          </div>
+        {/* Center — Title strip */}
+        <div style={{
+          background: 'var(--green-pale)',
+          border: '1px solid var(--green-light)',
+          borderRadius: 'var(--radius-xs)',
+          padding: '0.3rem 1rem',
+          textAlign: 'center',
+        }}>
+          <span className="text-label-caps" style={{ color: 'var(--green-deep)' }}>
+            Delhi-NCR Agricultural Optimization Portal
+          </span>
         </div>
 
+        {/* Right — Status */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
+          <span className="text-label-caps" style={{ color: 'var(--text-faint)' }}>Backend</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: backendConnected ? 'var(--green-mid)' : '#D4A04A',
+              display: 'inline-block',
+              animation: backendConnected ? 'none' : undefined,
+            }} />
+            <span className="font-mono-data" style={{
+              fontSize: '0.72rem',
+              color: backendConnected ? 'var(--green-deep)' : 'var(--amber-warm)',
+              fontWeight: 500,
+            }}>
+              {backendConnected ? 'Connected' : 'Connecting…'}
+            </span>
+          </div>
+        </div>
       </div>
     </header>
   );

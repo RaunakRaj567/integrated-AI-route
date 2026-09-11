@@ -67,6 +67,12 @@ def main():
     print("=" * 70)
     print("Press Ctrl+C in this window to stop both servers cleanly.\n")
 
+    # Auto-launch the browser
+    import webbrowser
+    time.sleep(2)
+    print("[INFO] Auto-launching browser...")
+    webbrowser.open("http://localhost:5173")
+
     try:
         while True:
             time.sleep(1)
