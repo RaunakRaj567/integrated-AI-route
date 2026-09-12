@@ -28,7 +28,7 @@ export default function DemandPanel({
   availableSupply, setAvailableSupply,
   priceMarkup, setPriceMarkup,
   coverageMode, setCoverageMode,
-  demands, predictedPrices = {},
+  demands, rawDemands = {}, predictedPrices = {},
   vehicleCapacities = [20000, 22000, 25000, 28000, 30000],
   onDemandChange, onFetchForecast,
   onAllocate, onOptimizeRoutes, onMasterOptimize, onWarehouseStore,
@@ -39,6 +39,7 @@ export default function DemandPanel({
   const meta = CROP_META[crop] || CROP_META.Wheat;
   const benchmark = CROP_BENCHMARKS[crop] || CROP_BENCHMARKS.Wheat;
   const totalDemandKg = Object.values(demands).reduce((acc, v) => acc + (Number(v) || 0), 0);
+  const totalRawDemandKg = Object.values(rawDemands).reduce((acc, v) => acc + (Number(v) || 0), 0);
 
   const maxTransportCapacityKg = vehicleCapacities.reduce((a, b) => a + b, 0);
   const maxTransportCapacityTons = (maxTransportCapacityKg / 1000).toFixed(0);
@@ -262,23 +263,32 @@ export default function DemandPanel({
           <h2 className="font-display" style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-ink)', margin: 0 }}>
             Market Demands
           </h2>
-          <span className="font-mono-data badge-neutral" style={{ fontSize: '0.65rem' }}>
-            {(totalDemandKg / 1000).toFixed(1)} t total
-          </span>
+          <div style={{ textAlign: 'right' }}>
+            <span className="font-mono-data badge-neutral" style={{ fontSize: '0.65rem' }}>
+              {(totalDemandKg / 1000).toFixed(1)}t allocated
+            </span>
+            {totalRawDemandKg > 0 && Math.abs(totalRawDemandKg - totalDemandKg) > 100 && (
+              <span style={{ fontSize: '0.62rem', color: 'var(--text-faint)', marginLeft: '0.35rem' }}>
+                (Mkt Cap: {(totalRawDemandKg / 1000).toFixed(1)}t)
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Column headers */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', padding: '0 0.5rem', marginBottom: '0.4rem' }}>
-          <span className="text-label-caps" style={{ color: 'var(--text-faint)' }}>Market</span>
-          <span className="text-label-caps" style={{ color: 'var(--text-faint)', textAlign: 'right' }}>Demand ({unitMode})</span>
+          <span className="text-label-caps" style={{ color: 'var(--text-faint)' }}>Market & ML Price</span>
+          <span className="text-label-caps" style={{ color: 'var(--text-faint)', textAlign: 'right' }}>Routed Load ({unitMode})</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto' }}>
           {locations.filter(loc => !loc.is_depot).map(loc => {
             const kgVal = demands[loc.name] ?? 0;
+            const rawKg = rawDemands[loc.name] ?? kgVal;
             const hasDemand = kgVal > 0;
             const mlPrice = predictedPrices[loc.name];
             const markedUp = mlPrice ? (mlPrice * (1 + priceMarkup / 100)).toFixed(1) : null;
+            const rawDisplay = unitMode === 'tons' ? (rawKg / 1000).toFixed(1) + 't' : rawKg.toLocaleString() + 'kg';
 
             return (
               <div key={loc.id} style={{
@@ -288,20 +298,27 @@ export default function DemandPanel({
                 border: `1px solid ${hasDemand ? 'var(--beige-border)' : 'transparent'}`,
                 borderRadius: 'var(--radius-xs)',
               }}>
-                {/* Left: location info */}
+                {/* Left: location info + sideways market demand */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                   <MapPin size={11} color={hasDemand ? 'var(--green-mid)' : 'var(--beige-mid)'} style={{ flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-ink)', margin: 0, whiteSpace: 'nowrap' }}>
-                      {loc.name}
-                    </p>
-                    {markedUp && (
-                      <span style={{
-                        fontSize: '0.6rem', fontWeight: 700, fontFamily: 'DM Mono',
-                        background: 'var(--green-pale)', color: 'var(--green-deep)',
-                        border: '1px solid var(--green-light)',
-                        borderRadius: 'var(--radius-xs)', padding: '0 0.3rem',
-                      }}>₹{markedUp}/kg</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-ink)', margin: 0, whiteSpace: 'nowrap' }}>
+                        {loc.name}
+                      </p>
+                      {markedUp && (
+                        <span style={{
+                          fontSize: '0.58rem', fontWeight: 700, fontFamily: 'DM Mono',
+                          background: 'var(--green-pale)', color: 'var(--green-deep)',
+                          border: '1px solid var(--green-light)',
+                          borderRadius: 'var(--radius-xs)', padding: '0 0.25rem',
+                        }}>₹{markedUp}/kg</span>
+                      )}
+                    </div>
+                    {rawKg > 0 && (
+                      <p style={{ fontSize: '0.62rem', color: 'var(--text-faint)', margin: '0.1rem 0 0', fontWeight: 500 }}>
+                        Mkt Demand: <span style={{ fontWeight: 600, color: 'var(--text-body)' }}>{rawDisplay}</span>
+                      </p>
                     )}
                   </div>
                 </div>

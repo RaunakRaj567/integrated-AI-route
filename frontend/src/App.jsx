@@ -67,6 +67,10 @@ function MainDashboard() {
     Noida: 14287, Ghaziabad: 13613, Gurugram: 12492, Faridabad: 12207,
     Sonipat: 11513, Panipat: 11038, Meerut: 12860, Rohtak: 10675,
   });
+  const [rawDemands, setRawDemands] = useState({
+    Noida: 14287, Ghaziabad: 13613, Gurugram: 12492, Faridabad: 12207,
+    Sonipat: 11513, Panipat: 11038, Meerut: 12860, Rohtak: 10675,
+  });
   const [predictedPrices, setPredictedPrices] = useState({
     Delhi: 50.0, Noida: 52.0, Ghaziabad: 51.0, Gurugram: 55.0,
     Faridabad: 49.0, Sonipat: 48.0, Panipat: 47.0, Meerut: 52.0, Rohtak: 46.0,
@@ -100,6 +104,7 @@ function MainDashboard() {
         if (m.location !== 'Delhi') newDemands[m.location] = m.expected_demand_kg;
       });
       setDemands(newDemands);
+      setRawDemands(newDemands);
       setPredictedPrices(newPrices);
       const pv = Object.values(newPrices).filter(Boolean);
       const avgP = pv.length ? (pv.reduce((a, b) => a + b, 0) / pv.length).toFixed(2) : '—';
@@ -280,7 +285,7 @@ function MainDashboard() {
               availableSupply={availableSupply} setAvailableSupply={setAvailableSupply}
               priceMarkup={priceMarkup} setPriceMarkup={handlePriceMarkupChange}
               coverageMode={coverageMode} setCoverageMode={() => {}}
-              demands={demands} predictedPrices={predictedPrices}
+              demands={demands} rawDemands={rawDemands} predictedPrices={predictedPrices}
               vehicleCapacities={vehicleCapacities}
               onDemandChange={handleDemandChange}
               onFetchForecast={handleFetchForecast}
