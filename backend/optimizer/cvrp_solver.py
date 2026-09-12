@@ -39,6 +39,7 @@ def solve_cvrp_fallback_greedy(
 
     # Sort vehicles by capacity descending so larger trucks get loaded first
     sorted_v_indices = sorted(range(num_vehicles), key=lambda k: vehicle_capacities[k], reverse=True)
+    remaining_demands = list(demands)
 
     for v_idx in sorted_v_indices:
         if not unvisited:
@@ -50,27 +51,32 @@ def solve_cvrp_fallback_greedy(
         route_nodes = [depot]
         route_dist = 0.0
 
-        while unvisited:
-            # Find closest unvisited node that fits in remaining capacity
+        while unvisited and current_load < cap - 0.01:
+            # Find closest unvisited node with positive remaining demand
             best_candidate = None
             best_dist = float('inf')
 
             for node in unvisited:
-                d_node = demands[node]
-                if current_load + d_node <= cap:
+                if remaining_demands[node] > 0.01:
                     dist = distance_matrix[current_node][node]
                     if dist < best_dist:
                         best_dist = dist
                         best_candidate = node
 
             if best_candidate is not None:
+                rem_cap = cap - current_load
+                node_demand = remaining_demands[best_candidate]
+                take_load = min(rem_cap, node_demand)
+
                 route_nodes.append(best_candidate)
-                current_load += demands[best_candidate]
+                current_load += take_load
+                remaining_demands[best_candidate] -= take_load
                 route_dist += best_dist
                 current_node = best_candidate
-                unvisited.remove(best_candidate)
+
+                if remaining_demands[best_candidate] <= 0.01:
+                    unvisited.remove(best_candidate)
             else:
-                # No more nodes fit in this vehicle
                 break
 
         if len(route_nodes) > 1:
@@ -203,9 +209,9 @@ def solve_cvrp(
             "Capacity"
         )
 
-        # Disjunction allows solver to drop nodes with penalty if capacity is tight
+        # Disjunction with high penalty ensures solver serves ALL active nodes without dropping cargo
         for node in range(1, num_active_locations):
-            routing.AddDisjunction([manager.NodeToIndex(node)], 100000)
+            routing.AddDisjunction([manager.NodeToIndex(node)], 1000000000)
 
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
         search_parameters.first_solution_strategy = (
@@ -283,7 +289,8 @@ def solve_cvrp(
             total_duration_mins += est_duration_mins
             total_load += route_load
 
-        if not routes:
+        if not routes or total_load < total_demand * 0.98:
+            print(f"[INFO] OR-Tools delivered {total_load} kg out of {total_demand} kg. Executing Greedy Splitting Fallback.")
             return solve_cvrp_fallback_greedy(
                 distance_matrix, demands, vehicle_capacities, depot, location_names, duration_matrix
             )

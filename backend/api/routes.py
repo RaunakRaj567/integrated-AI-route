@@ -51,12 +51,21 @@ def master_optimize(req: MasterOptimizeRequest):
             farmer_minimums=req.farmer_minimums
         )
 
-        # 2. Apply Farmer Overrides if provided
+        # 2. Use LP Solver's optimal allocation map for available supply
         alloc_map = {m["location"]: m["allocated_kg"] for m in alloc_res["markets"]}
         if req.overrides:
-            for loc, manual_qty in req.overrides.items():
-                if loc in alloc_map:
-                    alloc_map[loc] = max(0.0, manual_qty)
+            override_sum = sum(max(0.0, float(v)) for v in req.overrides.values())
+            # If user provided custom overrides matching available supply, use them directly
+            if override_sum > 0 and abs(override_sum - req.available_quantity_kg) < 1.0:
+                for loc, manual_qty in req.overrides.items():
+                    if loc in alloc_map:
+                        alloc_map[loc] = max(0.0, float(manual_qty))
+            elif override_sum > 0:
+                # Scale overrides proportionally to match available supply so 100% of cargo gets routed
+                scale = req.available_quantity_kg / override_sum
+                for loc, manual_qty in req.overrides.items():
+                    if loc in alloc_map:
+                        alloc_map[loc] = round(max(0.0, float(manual_qty)) * scale, 2)
 
         # 3. Solve CVRP Routing & Geometry
         routing_res = run_routing_service(allocations_map=alloc_map)
