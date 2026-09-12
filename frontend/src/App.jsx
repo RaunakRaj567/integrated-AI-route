@@ -247,30 +247,74 @@ function MainDashboard() {
           </div>
         )}
 
-        {/* ── KPI Bar ── */}
+        {/* ── KPI Bars (Row 1: Full Forecast & Row 2: Actual Available Supply Impact) ── */}
         {masterResult && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.6rem' }}>
-            {[
-              { label: 'Allocated Supply', val: `${((masterResult.supply?.allocated_kg || 0) / 1000).toFixed(1)}`, unit: 'Tons', sub: `Surplus: ${((masterResult.supply?.surplus_kg || 0) / 1000).toFixed(1)}t`, accent: false },
-              { label: 'Expected Revenue', val: `₹${(masterResult.profit_summary?.expected_revenue || 0).toLocaleString()}`, unit: '', sub: `SP +${priceMarkup}% (${crop})`, accent: 'green' },
-              { label: 'Transport Cost', val: `₹${(masterResult.profit_summary?.estimated_logistics_cost || 0).toLocaleString()}`, unit: '', sub: `${masterResult.routing_summary?.total_distance_km || 0} km @ ₹100/km`, accent: 'red' },
-              { label: 'Net Profit', val: `₹${(masterResult.profit_summary?.expected_net_profit || 0).toLocaleString()}`, unit: '', sub: `Margin: ${masterResult.profit_summary?.expected_margin_percent || 0}%`, accent: 'green' },
-              { label: 'Vehicles Used', val: `${masterResult.routing_summary?.vehicles_used || masterResult.routes?.length || 0}/${masterResult.routing_summary?.vehicles_available || 5}`, unit: '', sub: `Utilization: ${masterResult.routing_summary?.fleet_utilization_percent || 0}%`, accent: false },
-              { label: 'Travel Time', val: `${(((masterResult.routing_summary?.total_duration_minutes || 0)) / 60).toFixed(1)}`, unit: 'hrs', sub: `${masterResult.routing_summary?.total_duration_minutes || 0} mins`, accent: false },
-            ].map(({ label, val, unit, sub, accent }) => (
-              <div key={label} className="kpi-block" style={{
-                '--kpi-accent': accent === 'green' ? 'var(--green-mid)' : accent === 'red' ? 'var(--red-muted)' : 'var(--beige-mid)',
-              }}>
-                <p className="text-label-caps" style={{ color: 'var(--text-faint)', margin: '0 0 0.3rem' }}>{label}</p>
-                <p className="font-mono-data" style={{
-                  fontSize: '1.05rem', fontWeight: 500, margin: 0,
-                  color: accent === 'green' ? 'var(--green-deep)' : accent === 'red' ? 'var(--red-muted)' : 'var(--text-ink)',
-                }}>
-                  {val} <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{unit}</span>
-                </p>
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-faint)', margin: '0.2rem 0 0' }}>{sub}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {/* Row 1: Market Demand Forecast KPI Bar */}
+            <div>
+              <div style={{ marginBottom: '0.3rem' }}>
+                <span className="text-label-caps" style={{ fontSize: '0.63rem', color: 'var(--green-deep)', fontWeight: 700 }}>
+                  📊 Full Market Demand Forecast Metrics
+                </span>
               </div>
-            ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.6rem' }}>
+                {[
+                  { label: 'Allocated Supply', val: `${((masterResult.supply?.allocated_kg || 0) / 1000).toFixed(1)}`, unit: 'Tons', sub: `Surplus: ${((masterResult.supply?.surplus_kg || 0) / 1000).toFixed(1)}t`, accent: false },
+                  { label: 'Expected Revenue', val: `₹${(masterResult.profit_summary?.expected_revenue || 0).toLocaleString()}`, unit: '', sub: `SP +${priceMarkup}% (${crop})`, accent: 'green' },
+                  { label: 'Transport Cost', val: `₹${(masterResult.profit_summary?.estimated_logistics_cost || 0).toLocaleString()}`, unit: '', sub: `${masterResult.routing_summary?.total_distance_km || 0} km @ ₹100/km`, accent: 'red' },
+                  { label: 'Net Profit', val: `₹${(masterResult.profit_summary?.expected_net_profit || 0).toLocaleString()}`, unit: '', sub: `Margin: ${masterResult.profit_summary?.expected_margin_percent || 0}%`, accent: 'green' },
+                  { label: 'Vehicles Used', val: `${masterResult.routing_summary?.vehicles_used || masterResult.routes?.length || 0}/${masterResult.routing_summary?.vehicles_available || 5}`, unit: '', sub: `Utilization: ${masterResult.routing_summary?.fleet_utilization_percent || 0}%`, accent: false },
+                  { label: 'Travel Time', val: `${(((masterResult.routing_summary?.total_duration_minutes || 0)) / 60).toFixed(1)}`, unit: 'hrs', sub: `${masterResult.routing_summary?.total_duration_minutes || 0} mins`, accent: false },
+                ].map(({ label, val, unit, sub, accent }) => (
+                  <div key={label} className="kpi-block" style={{
+                    '--kpi-accent': accent === 'green' ? 'var(--green-mid)' : accent === 'red' ? 'var(--red-muted)' : 'var(--beige-mid)',
+                  }}>
+                    <p className="text-label-caps" style={{ color: 'var(--text-faint)', margin: '0 0 0.3rem' }}>{label}</p>
+                    <p className="font-mono-data" style={{
+                      fontSize: '1.05rem', fontWeight: 500, margin: 0,
+                      color: accent === 'green' ? 'var(--green-deep)' : accent === 'red' ? 'var(--red-muted)' : 'var(--text-ink)',
+                    }}>
+                      {val} <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{unit}</span>
+                    </p>
+                    <p style={{ fontSize: '0.62rem', color: 'var(--text-faint)', margin: '0.2rem 0 0' }}>{sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 2: Actual Available Supply Impact KPI Bar */}
+            <div>
+              <div style={{ marginBottom: '0.3rem' }}>
+                <span className="text-label-caps" style={{ fontSize: '0.63rem', color: 'var(--amber-warm)', fontWeight: 700 }}>
+                  🎯 Actual Financials for Farmer Available Supply ({(availableSupply / 1000).toFixed(1)} Tons Input)
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.6rem' }}>
+                {[
+                  { label: 'Actual Supply Delivered', val: `${((masterResult.supply?.allocated_kg || 0) / 1000).toFixed(1)}`, unit: 'Tons', sub: `Leftover: ${((masterResult.supply?.surplus_kg || 0) / 1000).toFixed(1)}t`, accent: false },
+                  { label: 'Actual Revenue', val: `₹${(masterResult.profit_summary?.expected_revenue || 0).toLocaleString()}`, unit: '', sub: `From ${(availableSupply / 1000).toFixed(1)}t supply`, accent: 'green' },
+                  { label: 'Actual Transport Cost', val: `₹${(masterResult.profit_summary?.estimated_logistics_cost || 0).toLocaleString()}`, unit: '', sub: `${masterResult.routing_summary?.total_distance_km || 0} km freight`, accent: 'red' },
+                  { label: 'Actual Net Profit', val: `₹${(masterResult.profit_summary?.expected_net_profit || 0).toLocaleString()}`, unit: '', sub: `Margin: ${masterResult.profit_summary?.expected_margin_percent || 0}%`, accent: 'green' },
+                  { label: 'Actual Fleet Deployed', val: `${masterResult.routing_summary?.vehicles_used || masterResult.routes?.length || 0}/5`, unit: 'Trucks', sub: `Utilization: ${masterResult.routing_summary?.fleet_utilization_percent || 0}%`, accent: false },
+                  { label: 'Actual Delivery Time', val: `${(((masterResult.routing_summary?.total_duration_minutes || 0)) / 60).toFixed(1)}`, unit: 'hrs', sub: `${masterResult.routing_summary?.total_duration_minutes || 0} mins`, accent: false },
+                ].map(({ label, val, unit, sub, accent }) => (
+                  <div key={label} className="kpi-block" style={{
+                    background: 'var(--bg-raised)',
+                    border: '1.5px solid var(--amber-warm)',
+                    '--kpi-accent': accent === 'green' ? 'var(--green-mid)' : accent === 'red' ? 'var(--red-muted)' : 'var(--amber-warm)',
+                  }}>
+                    <p className="text-label-caps" style={{ color: 'var(--amber-warm)', margin: '0 0 0.3rem', fontWeight: 700 }}>{label}</p>
+                    <p className="font-mono-data" style={{
+                      fontSize: '1.05rem', fontWeight: 600, margin: 0,
+                      color: accent === 'green' ? 'var(--green-deep)' : accent === 'red' ? 'var(--red-muted)' : 'var(--text-ink)',
+                    }}>
+                      {val} <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{unit}</span>
+                    </p>
+                    <p style={{ fontSize: '0.62rem', color: 'var(--text-faint)', margin: '0.2rem 0 0' }}>{sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
