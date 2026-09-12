@@ -237,40 +237,21 @@ function MainDashboard() {
   const fullMarketTravelMins = 571.4;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ROW 2 CALCULATION: 100% Independent (Based strictly on Farmer Available Supply)
+  // ROW 2 CALCULATION: Locked to masterResult — only updates on Optimize click
   // ══════════════════════════════════════════════════════════════════════════
-  const actualSupplyAllocatedKg = masterResult?.supply?.allocated_kg ?? Math.min(availableSupply, fullMarketDemandKg);
-  const actualSupplyAllocatedTons = (actualSupplyAllocatedKg / 1000).toFixed(1);
-  const actualLeftoverTons = (Math.max(0, availableSupply - actualSupplyAllocatedKg) / 1000).toFixed(1);
-
-  // Compute actual mandi loads proportionally for availableSupply:
-  const actualSupplyScale = (fullMarketDemandKg > 0 && availableSupply <= fullMarketDemandKg)
-    ? availableSupply / fullMarketDemandKg
-    : 1.0;
-
-  const actualSupplyRevenue = Math.round(
-    Object.entries(rawDemands).reduce((acc, [mandi, qty]) => {
-      const p = predictedPrices[mandi] || 34.0;
-      const actualMandiQty = qty * actualSupplyScale;
-      return acc + (actualMandiQty * p * (1 + priceMarkup / 100));
-    }, 0)
-  );
-
-  // Transport cost for actual supply (proportional to fleet deployment required for actual supply):
-  const actualVehiclesUsed = masterResult?.routing_summary?.vehicles_used ?? (
-    actualSupplyAllocatedKg <= 30000 ? 1 :
-    actualSupplyAllocatedKg <= 55000 ? 2 :
-    actualSupplyAllocatedKg <= 80000 ? 3 :
-    actualSupplyAllocatedKg <= 105000 ? 4 : 5
-  );
-
-  const actualDistKm = masterResult?.routing_summary?.total_distance_km ?? Math.round(fullMarketDistKm * Math.min(1.0, actualVehiclesUsed / 4));
-  const actualTransportCost = masterResult?.profit_summary?.estimated_logistics_cost ?? Math.round(actualDistKm * 100);
-  const actualNetProfit = actualSupplyRevenue - actualTransportCost;
-  const actualMargin = actualSupplyRevenue > 0 ? ((actualNetProfit / actualSupplyRevenue) * 100).toFixed(2) : '0.00';
-  const actualFleetUtil = ((actualSupplyAllocatedKg / 125000) * 100).toFixed(1);
-  const actualTravelMins = masterResult?.routing_summary?.total_duration_minutes ?? Math.round(fullMarketTravelMins * (actualVehiclesUsed / 4));
-  const actualTravelHrs = (actualTravelMins / 60).toFixed(1);
+  const r2HasData = masterResult !== null;
+  const r2SupplyInputKg = masterResult?.supply?.available_quantity_kg ?? 0;
+  const r2AllocatedKg = masterResult?.supply?.allocated_kg ?? 0;
+  const r2SurplusKg = masterResult?.supply?.surplus_kg ?? 0;
+  const r2Revenue = masterResult?.profit_summary?.expected_revenue ?? 0;
+  const r2TransportCost = masterResult?.profit_summary?.estimated_logistics_cost ?? 0;
+  const r2NetProfit = masterResult?.profit_summary?.expected_net_profit ?? 0;
+  const r2Margin = masterResult?.profit_summary?.expected_margin_percent ?? 0;
+  const r2VehiclesUsed = masterResult?.routing_summary?.vehicles_used ?? 0;
+  const r2DistKm = masterResult?.routing_summary?.total_distance_km ?? 0;
+  const r2FleetUtil = masterResult?.routing_summary?.fleet_utilization_percent ?? 0;
+  const r2TravelMins = masterResult?.routing_summary?.total_duration_minutes ?? 0;
+  const r2TravelHrs = (r2TravelMins / 60).toFixed(1);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
@@ -338,24 +319,26 @@ function MainDashboard() {
             </div>
           </div>
 
-          {/* ROW 2: Actual Farmer Available Supply Metrics (100% Independent) */}
+          {/* ROW 2: Actual Farmer Available Supply Metrics — locked to last optimization run */}
           <div>
             <div style={{ marginBottom: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span className="text-label-caps" style={{ fontSize: '0.65rem', color: 'var(--amber-warm)', fontWeight: 700 }}>
-                🎯 Row 2: Actual Farmer Available Supply (Independent calculation for {(availableSupply / 1000).toFixed(1)} Tons Input)
+                🎯 Row 2: Actual Farmer Supply {r2HasData ? `(Optimized for ${(r2SupplyInputKg / 1000).toFixed(1)} Tons)` : '(Run Optimize to populate)'}
               </span>
-              <span style={{ fontSize: '0.62rem', color: 'var(--amber-warm)', fontWeight: 600 }}>
-                Farmer Input: {(availableSupply / 1000).toFixed(1)} Tons
-              </span>
+              {r2HasData && (
+                <span style={{ fontSize: '0.62rem', color: 'var(--amber-warm)', fontWeight: 600 }}>
+                  Farmer Input: {(r2SupplyInputKg / 1000).toFixed(1)} Tons
+                </span>
+              )}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.6rem' }}>
               {[
-                { label: 'Actual Supply Delivered', val: `${actualSupplyAllocatedTons}`, unit: 'Tons', sub: `Leftover: ${actualLeftoverTons}t`, accent: false },
-                { label: 'Actual Revenue Yield', val: `₹${actualSupplyRevenue.toLocaleString()}`, unit: '', sub: `From ${(availableSupply / 1000).toFixed(1)}t supply`, accent: 'green' },
-                { label: 'Actual Transport Cost', val: `₹${actualTransportCost.toLocaleString()}`, unit: '', sub: `${actualDistKm} km freight`, accent: 'red' },
-                { label: 'Actual Net Profit', val: `₹${actualNetProfit.toLocaleString()}`, unit: '', sub: `Margin: ${actualMargin}%`, accent: 'green' },
-                { label: 'Actual Fleet Deployed', val: `${actualVehiclesUsed}/5`, unit: 'Trucks', sub: `Utilization: ${actualFleetUtil}%`, accent: false },
-                { label: 'Actual Delivery Time', val: `${actualTravelHrs}`, unit: 'hrs', sub: `${actualTravelMins} mins`, accent: false },
+                { label: 'Actual Supply Delivered', val: r2HasData ? `${(r2AllocatedKg / 1000).toFixed(1)}` : '—', unit: 'Tons', sub: r2HasData ? `Surplus: ${(r2SurplusKg / 1000).toFixed(1)}t` : 'Awaiting optimization', accent: false },
+                { label: 'Actual Revenue Yield', val: r2HasData ? `₹${r2Revenue.toLocaleString()}` : '—', unit: '', sub: r2HasData ? `From ${(r2AllocatedKg / 1000).toFixed(1)}t delivered` : 'Awaiting optimization', accent: 'green' },
+                { label: 'Actual Transport Cost', val: r2HasData ? `₹${r2TransportCost.toLocaleString()}` : '—', unit: '', sub: r2HasData ? `${r2DistKm} km freight` : 'Awaiting optimization', accent: 'red' },
+                { label: 'Actual Net Profit', val: r2HasData ? `₹${r2NetProfit.toLocaleString()}` : '—', unit: '', sub: r2HasData ? `Margin: ${r2Margin}%` : 'Awaiting optimization', accent: 'green' },
+                { label: 'Actual Fleet Deployed', val: r2HasData ? `${r2VehiclesUsed}/5` : '—', unit: 'Trucks', sub: r2HasData ? `Utilization: ${r2FleetUtil}%` : 'Awaiting optimization', accent: false },
+                { label: 'Actual Delivery Time', val: r2HasData ? `${r2TravelHrs}` : '—', unit: 'hrs', sub: r2HasData ? `${r2TravelMins} mins` : 'Awaiting optimization', accent: false },
               ].map(({ label, val, unit, sub, accent }) => (
                 <div key={label} className="kpi-block" style={{
                   background: 'var(--bg-raised)',
