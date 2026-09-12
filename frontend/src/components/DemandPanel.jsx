@@ -45,8 +45,8 @@ export default function DemandPanel({
   const maxTransportCapacityTons = (maxTransportCapacityKg / 1000).toFixed(0);
   const isExceedingCapacity = availableSupply > maxTransportCapacityKg;
 
-  const leftoverKg = Math.max(0, availableSupply - totalDemandKg);
-  const isSupplyLess = availableSupply < totalDemandKg;
+  const leftoverKg = Math.max(0, availableSupply - totalRawDemandKg);
+  const isSupplyLess = availableSupply < totalRawDemandKg;
 
   const priceVals = Object.values(predictedPrices).filter(v => v > 0);
   const mlAvgPrice = priceVals.length > 0
@@ -194,7 +194,7 @@ export default function DemandPanel({
               {isSupplyLess
                 ? `✨ Available supply (${(availableSupply / 1000).toFixed(1)}t) is 100% allocated across markets in exact demand ratio.`
                 : leftoverKg > 0
-                ? `📦 Supply (${(availableSupply / 1000).toFixed(1)}t) exceeds market demand (${(totalDemandKg / 1000).toFixed(1)}t). Leftover: ${(leftoverKg / 1000).toFixed(1)}t.`
+                ? `📦 Supply (${(availableSupply / 1000).toFixed(1)}t) exceeds market demand (${(totalRawDemandKg / 1000).toFixed(1)}t). Leftover: ${(leftoverKg / 1000).toFixed(1)}t.`
                 : `✅ All available supply (${(availableSupply / 1000).toFixed(1)}t) is fully allocated to market demand.`
               }
             </p>
