@@ -252,6 +252,7 @@ function MainDashboard() {
               priceMarkup={priceMarkup} setPriceMarkup={handlePriceMarkupChange}
               coverageMode={coverageMode} setCoverageMode={() => {}}
               demands={demands} predictedPrices={predictedPrices}
+              vehicleCapacities={vehicleCapacities}
               onDemandChange={handleDemandChange}
               onFetchForecast={handleFetchForecast}
               onAllocate={handleAllocate}

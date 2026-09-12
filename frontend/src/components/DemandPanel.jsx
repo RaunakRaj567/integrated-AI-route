@@ -29,6 +29,7 @@ export default function DemandPanel({
   priceMarkup, setPriceMarkup,
   coverageMode, setCoverageMode,
   demands, predictedPrices = {},
+  vehicleCapacities = [20000, 22000, 25000, 28000, 30000],
   onDemandChange, onFetchForecast,
   onAllocate, onOptimizeRoutes, onMasterOptimize,
   loadingForecast, allocating, optimizing, locations,
@@ -38,6 +39,10 @@ export default function DemandPanel({
   const meta = CROP_META[crop] || CROP_META.Wheat;
   const benchmark = CROP_BENCHMARKS[crop] || CROP_BENCHMARKS.Wheat;
   const totalDemandKg = Object.values(demands).reduce((acc, v) => acc + (Number(v) || 0), 0);
+
+  const maxTransportCapacityKg = vehicleCapacities.reduce((a, b) => a + b, 0);
+  const maxTransportCapacityTons = (maxTransportCapacityKg / 1000).toFixed(0);
+  const isExceedingCapacity = availableSupply > maxTransportCapacityKg;
 
   const priceVals = Object.values(predictedPrices).filter(v => v > 0);
   const mlAvgPrice = priceVals.length > 0
@@ -144,11 +149,16 @@ export default function DemandPanel({
 
         {/* Supply Input */}
         <div style={{ marginBottom: '0.85rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.3rem' }}>
             <Label>Total Available Supply</Label>
-            <span className="font-mono-data" style={{ fontSize: '0.72rem', color: 'var(--green-deep)', fontWeight: 500 }}>
-              {(availableSupply / 1000).toFixed(1)} tons
-            </span>
+            <div style={{ textAlign: 'right' }}>
+              <span className="font-mono-data" style={{ fontSize: '0.72rem', color: isExceedingCapacity ? 'var(--amber-warm)' : 'var(--green-deep)', fontWeight: 600 }}>
+                {(availableSupply / 1000).toFixed(1)} tons
+              </span>
+              <span style={{ fontSize: '0.62rem', color: 'var(--text-faint)', display: 'block' }}>
+                Upper Limit: {maxTransportCapacityTons}t fleet cap
+              </span>
+            </div>
           </div>
           <input
             type="number" min="1000" step="1000" className="field-input"
@@ -157,7 +167,23 @@ export default function DemandPanel({
               const raw = parseFloat(e.target.value) || 0;
               setAvailableSupply(unitMode === 'tons' ? raw * 1000 : raw);
             }}
+            style={isExceedingCapacity ? { borderColor: '#D4B88A', background: 'var(--amber-pale)' } : {}}
           />
+          {/* Storage & Fleet Transport Limit Reminder Tag */}
+          <div style={{
+            marginTop: '0.4rem',
+            padding: '0.4rem 0.6rem',
+            background: isExceedingCapacity ? 'var(--amber-pale)' : 'var(--bg-base)',
+            border: `1px solid ${isExceedingCapacity ? '#D4B88A' : 'var(--beige-border)'}`,
+            borderRadius: 'var(--radius-xs)',
+          }}>
+            <p style={{ fontSize: '0.65rem', color: isExceedingCapacity ? 'var(--amber-warm)' : 'var(--text-muted)', margin: 0, fontWeight: isExceedingCapacity ? 600 : 400 }}>
+              {isExceedingCapacity
+                ? `⚠️ Fleet Storage Reminder: Available supply (${(availableSupply / 1000).toFixed(1)}t) exceeds max transport fleet capacity of ${maxTransportCapacityTons} tons. Surplus ${((availableSupply - maxTransportCapacityKg)/1000).toFixed(1)}t will remain in warehouse storage.`
+                : `📦 Storage & Transport Limit: Max fleet transportation capacity is ${maxTransportCapacityTons} tons across 5 trucks.`
+              }
+            </p>
+          </div>
         </div>
 
         {/* SP Slider */}
