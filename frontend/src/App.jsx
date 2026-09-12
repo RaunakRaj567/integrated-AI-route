@@ -215,30 +215,62 @@ function MainDashboard() {
 
   const totalDemand = Object.values(demands).reduce((a, v) => a + (Number(v) || 0), 0);
 
-  // --- Dynamic Live Metrics for Row 1 & Row 2 ---
+  // ══════════════════════════════════════════════════════════════════════════
+  // ROW 1 CALCULATION: 100% Independent (Based strictly on Full Market Demand)
+  // ══════════════════════════════════════════════════════════════════════════
   const fullMarketDemandKg = Object.values(rawDemands).reduce((a, b) => a + (Number(b) || 0), 0);
-  const fullMarketRevenue = masterResult?.profit_summary?.expected_revenue || Math.round(
+  const fullMarketDemandTons = (fullMarketDemandKg / 1000).toFixed(1);
+
+  const fullMarketRevenue = Math.round(
     Object.entries(rawDemands).reduce((acc, [mandi, qty]) => {
       const p = predictedPrices[mandi] || 34.0;
       return acc + (qty * p * (1 + priceMarkup / 100));
     }, 0)
   );
-  const estDistanceKm = masterResult?.routing_summary?.total_distance_km || 513.85;
-  const fullMarketTransportCost = masterResult?.profit_summary?.estimated_logistics_cost || Math.round(estDistanceKm * 100);
+
+  const fullMarketDistKm = 513.85;
+  const fullMarketTransportCost = Math.round(fullMarketDistKm * 100);
   const fullMarketNetProfit = fullMarketRevenue - fullMarketTransportCost;
   const fullMarketMargin = fullMarketRevenue > 0 ? ((fullMarketNetProfit / fullMarketRevenue) * 100).toFixed(2) : '0.00';
+  const fullMarketVehiclesUsed = fullMarketDemandKg > 90000 ? 5 : 4;
+  const fullMarketTravelTimeHrs = '9.5';
+  const fullMarketTravelMins = 571.4;
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // ROW 2 CALCULATION: 100% Independent (Based strictly on Farmer Available Supply)
+  // ══════════════════════════════════════════════════════════════════════════
   const actualSupplyAllocatedKg = masterResult?.supply?.allocated_kg ?? Math.min(availableSupply, fullMarketDemandKg);
+  const actualSupplyAllocatedTons = (actualSupplyAllocatedKg / 1000).toFixed(1);
+  const actualLeftoverTons = (Math.max(0, availableSupply - actualSupplyAllocatedKg) / 1000).toFixed(1);
+
+  // Compute actual mandi loads proportionally for availableSupply:
+  const actualSupplyScale = (fullMarketDemandKg > 0 && availableSupply <= fullMarketDemandKg)
+    ? availableSupply / fullMarketDemandKg
+    : 1.0;
+
   const actualSupplyRevenue = Math.round(
-    Object.entries(demands).reduce((acc, [mandi, qty]) => {
+    Object.entries(rawDemands).reduce((acc, [mandi, qty]) => {
       const p = predictedPrices[mandi] || 34.0;
-      return acc + (qty * p * (1 + priceMarkup / 100));
+      const actualMandiQty = qty * actualSupplyScale;
+      return acc + (actualMandiQty * p * (1 + priceMarkup / 100));
     }, 0)
   );
-  const actualTransportCost = masterResult?.profit_summary?.estimated_logistics_cost || Math.round(estDistanceKm * 100);
+
+  // Transport cost for actual supply (proportional to fleet deployment required for actual supply):
+  const actualVehiclesUsed = masterResult?.routing_summary?.vehicles_used ?? (
+    actualSupplyAllocatedKg <= 30000 ? 1 :
+    actualSupplyAllocatedKg <= 55000 ? 2 :
+    actualSupplyAllocatedKg <= 80000 ? 3 :
+    actualSupplyAllocatedKg <= 105000 ? 4 : 5
+  );
+
+  const actualDistKm = masterResult?.routing_summary?.total_distance_km ?? Math.round(fullMarketDistKm * Math.min(1.0, actualVehiclesUsed / 4));
+  const actualTransportCost = masterResult?.profit_summary?.estimated_logistics_cost ?? Math.round(actualDistKm * 100);
   const actualNetProfit = actualSupplyRevenue - actualTransportCost;
   const actualMargin = actualSupplyRevenue > 0 ? ((actualNetProfit / actualSupplyRevenue) * 100).toFixed(2) : '0.00';
-  const actualLeftoverTons = (Math.max(0, availableSupply - actualSupplyAllocatedKg) / 1000).toFixed(1);
+  const actualFleetUtil = ((actualSupplyAllocatedKg / 125000) * 100).toFixed(1);
+  const actualTravelMins = masterResult?.routing_summary?.total_duration_minutes ?? Math.round(fullMarketTravelMins * (actualVehiclesUsed / 4));
+  const actualTravelHrs = (actualTravelMins / 60).toFixed(1);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
@@ -269,23 +301,26 @@ function MainDashboard() {
           </div>
         )}
 
-        {/* ── ALWAYS VISIBLE DUAL KPI BARS (Row 1: Full Forecast & Row 2: Actual Available Supply) ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {/* ROW 1: Full Market Demand Forecast Metrics */}
+        {/* ── INDEPENDENT DUAL KPI BARS ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {/* ROW 1: Market Demand Forecast Metrics (100% Independent) */}
           <div>
-            <div style={{ marginBottom: '0.3rem' }}>
-              <span className="text-label-caps" style={{ fontSize: '0.63rem', color: 'var(--green-deep)', fontWeight: 700 }}>
-                📊 Full Market Demand Forecast Metrics
+            <div style={{ marginBottom: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="text-label-caps" style={{ fontSize: '0.65rem', color: 'var(--green-deep)', fontWeight: 700 }}>
+                📊 Row 1: Full Market Demand Forecast (Independent calculation from ML Mandi Capacity)
+              </span>
+              <span style={{ fontSize: '0.62rem', color: 'var(--text-faint)' }}>
+                Market Capacity: {fullMarketDemandTons} Tons
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.6rem' }}>
               {[
-                { label: 'Allocated Supply', val: `${((fullMarketDemandKg) / 1000).toFixed(1)}`, unit: 'Tons', sub: `Full Market Cap`, accent: false },
-                { label: 'Expected Revenue', val: `₹${fullMarketRevenue.toLocaleString()}`, unit: '', sub: `SP +${priceMarkup}% (${crop})`, accent: 'green' },
-                { label: 'Transport Cost', val: `₹${fullMarketTransportCost.toLocaleString()}`, unit: '', sub: `${estDistanceKm} km @ ₹100/km`, accent: 'red' },
-                { label: 'Net Profit', val: `₹${fullMarketNetProfit.toLocaleString()}`, unit: '', sub: `Margin: ${fullMarketMargin}%`, accent: 'green' },
-                { label: 'Vehicles Used', val: `${masterResult?.routing_summary?.vehicles_used || 4}/5`, unit: '', sub: `Utilization: ${masterResult?.routing_summary?.fleet_utilization_percent || 78}%`, accent: false },
-                { label: 'Travel Time', val: `${((masterResult?.routing_summary?.total_duration_minutes || 571.4) / 60).toFixed(1)}`, unit: 'hrs', sub: `${masterResult?.routing_summary?.total_duration_minutes || 571.4} mins`, accent: false },
+                { label: 'Market Total Demand', val: `${fullMarketDemandTons}`, unit: 'Tons', sub: `100% Mandi Demand Cap`, accent: false },
+                { label: 'Market Potential Revenue', val: `₹${fullMarketRevenue.toLocaleString()}`, unit: '', sub: `SP +${priceMarkup}% (${crop})`, accent: 'green' },
+                { label: 'Full Transport Cost', val: `₹${fullMarketTransportCost.toLocaleString()}`, unit: '', sub: `${fullMarketDistKm} km @ ₹100/km`, accent: 'red' },
+                { label: 'Market Net Profit', val: `₹${fullMarketNetProfit.toLocaleString()}`, unit: '', sub: `Margin: ${fullMarketMargin}%`, accent: 'green' },
+                { label: 'Vehicles Required', val: `${fullMarketVehiclesUsed}/5`, unit: 'Trucks', sub: `Full fleet deployment`, accent: false },
+                { label: 'Full Fleet Travel Time', val: `${fullMarketTravelTimeHrs}`, unit: 'hrs', sub: `${fullMarketTravelMins} mins`, accent: false },
               ].map(({ label, val, unit, sub, accent }) => (
                 <div key={label} className="kpi-block" style={{
                   '--kpi-accent': accent === 'green' ? 'var(--green-mid)' : accent === 'red' ? 'var(--red-muted)' : 'var(--beige-mid)',
@@ -303,21 +338,24 @@ function MainDashboard() {
             </div>
           </div>
 
-          {/* ROW 2: Actual Available Supply Impact KPI Bar */}
+          {/* ROW 2: Actual Farmer Available Supply Metrics (100% Independent) */}
           <div>
-            <div style={{ marginBottom: '0.3rem' }}>
-              <span className="text-label-caps" style={{ fontSize: '0.63rem', color: 'var(--amber-warm)', fontWeight: 700 }}>
-                🎯 Actual Financials for Farmer Available Supply ({(availableSupply / 1000).toFixed(1)} Tons Input)
+            <div style={{ marginBottom: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="text-label-caps" style={{ fontSize: '0.65rem', color: 'var(--amber-warm)', fontWeight: 700 }}>
+                🎯 Row 2: Actual Farmer Available Supply (Independent calculation for {(availableSupply / 1000).toFixed(1)} Tons Input)
+              </span>
+              <span style={{ fontSize: '0.62rem', color: 'var(--amber-warm)', fontWeight: 600 }}>
+                Farmer Input: {(availableSupply / 1000).toFixed(1)} Tons
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.6rem' }}>
               {[
-                { label: 'Actual Supply Delivered', val: `${(actualSupplyAllocatedKg / 1000).toFixed(1)}`, unit: 'Tons', sub: `Leftover: ${actualLeftoverTons}t`, accent: false },
-                { label: 'Actual Revenue', val: `₹${actualSupplyRevenue.toLocaleString()}`, unit: '', sub: `From ${(availableSupply / 1000).toFixed(1)}t supply`, accent: 'green' },
-                { label: 'Actual Transport Cost', val: `₹${actualTransportCost.toLocaleString()}`, unit: '', sub: `${estDistanceKm} km freight`, accent: 'red' },
+                { label: 'Actual Supply Delivered', val: `${actualSupplyAllocatedTons}`, unit: 'Tons', sub: `Leftover: ${actualLeftoverTons}t`, accent: false },
+                { label: 'Actual Revenue Yield', val: `₹${actualSupplyRevenue.toLocaleString()}`, unit: '', sub: `From ${(availableSupply / 1000).toFixed(1)}t supply`, accent: 'green' },
+                { label: 'Actual Transport Cost', val: `₹${actualTransportCost.toLocaleString()}`, unit: '', sub: `${actualDistKm} km freight`, accent: 'red' },
                 { label: 'Actual Net Profit', val: `₹${actualNetProfit.toLocaleString()}`, unit: '', sub: `Margin: ${actualMargin}%`, accent: 'green' },
-                { label: 'Actual Fleet Deployed', val: `${masterResult?.routing_summary?.vehicles_used || (availableSupply <= 50000 ? 2 : 4)}/5`, unit: 'Trucks', sub: `Utilization: ${((actualSupplyAllocatedKg / 125000) * 100).toFixed(1)}%`, accent: false },
-                { label: 'Actual Delivery Time', val: `${((masterResult?.routing_summary?.total_duration_minutes || 571.4) / 60).toFixed(1)}`, unit: 'hrs', sub: `${masterResult?.routing_summary?.total_duration_minutes || 571.4} mins`, accent: false },
+                { label: 'Actual Fleet Deployed', val: `${actualVehiclesUsed}/5`, unit: 'Trucks', sub: `Utilization: ${actualFleetUtil}%`, accent: false },
+                { label: 'Actual Delivery Time', val: `${actualTravelHrs}`, unit: 'hrs', sub: `${actualTravelMins} mins`, accent: false },
               ].map(({ label, val, unit, sub, accent }) => (
                 <div key={label} className="kpi-block" style={{
                   background: 'var(--bg-raised)',
