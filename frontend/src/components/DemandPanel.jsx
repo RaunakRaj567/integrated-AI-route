@@ -2,18 +2,20 @@
 import React, { useState } from 'react';
 import { Sparkles, MapPin, RefreshCw, ChevronRight, Plus, Minus, TrendingUp, Calculator, Truck, ArrowUpRight } from 'lucide-react';
 
-const CROPS = ['Wheat', 'Rice', 'Onion'];
+const CROPS = ['Wheat', 'Rice', 'Onion', 'Maize'];
 
 const CROP_META = {
   Wheat:  { emoji: '🌾', color: '#7A6030', paleBg: '#FBF5E0', borderColor: '#D4BC72' },
   Onion:  { emoji: '🧅', color: '#8B3A3A', paleBg: '#FAE8E8', borderColor: '#D4A0A0' },
   Rice:   { emoji: '🍚', color: '#3A6347', paleBg: '#E8F4EC', borderColor: '#9DC9A8' },
+  Maize:  { emoji: '🌽', color: '#9A6B1F', paleBg: '#FEF9E7', borderColor: '#E6C687' },
 };
 
 const CROP_BENCHMARKS = {
   Wheat: { basePricePerKg: 34.0 },
   Onion: { basePricePerKg: 50.0 },
   Rice:  { basePricePerKg: 48.0 },
+  Maize: { basePricePerKg: 24.0 },
 };
 
 // Section label component

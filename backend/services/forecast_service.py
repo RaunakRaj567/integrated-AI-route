@@ -52,11 +52,17 @@ MODEL_CONFIG = {
         "data_path": os.path.abspath("Demand forecasting/riceee/rice_market_1000.xls"),
         "crop_str": "Rice",
         "scale_factor": 8.0
+    },
+    "Maize": {
+        "model_path": os.path.abspath("Demand forecasting/maize/maize_demand_forecasting_model.joblib"),
+        "data_path": os.path.abspath("Demand forecasting/maize/maize_market_1000.csv"),
+        "crop_str": "Maize",
+        "scale_factor": 8.0
     }
 }
 
 # Real-world market selling prices (₹/kg) in Delhi-NCR Mandis
-# Updated with realistic current market rates: Onion ~₹50/kg, Wheat ~₹34/kg, Rice ~₹48/kg
+# Updated with realistic current market rates: Onion ~₹50/kg, Wheat ~₹34/kg, Rice ~₹48/kg, Maize ~₹24/kg
 BASE_PRICES = {
     "Wheat": {
         "Delhi": 33.0, "Noida": 36.0, "Ghaziabad": 35.0, "Gurugram": 38.0, 
@@ -69,6 +75,10 @@ BASE_PRICES = {
     "Rice": {
         "Delhi": 46.0, "Noida": 51.0, "Ghaziabad": 49.0, "Gurugram": 56.0, 
         "Faridabad": 47.0, "Sonipat": 44.0, "Panipat": 43.0, "Meerut": 53.0, "Rohtak": 41.0
+    },
+    "Maize": {
+        "Delhi": 24.0, "Noida": 25.0, "Ghaziabad": 24.0, "Gurugram": 27.0, 
+        "Faridabad": 24.0, "Sonipat": 23.0, "Panipat": 22.0, "Meerut": 24.0, "Rohtak": 22.0
     }
 }
 
@@ -269,6 +279,12 @@ def get_market_forecasts(crop: str, date: str) -> Tuple[Dict[str, float], Dict[s
             if month in [10, 11]:    # New crop arrival
                 price_multiplier -= 0.06
             elif month in [4, 5, 6]: # Pre-kharif lean season
+                price_multiplier += 0.08
+        elif crop_norm == "Maize":
+            # Maize Kharif: harvested Sep-Nov → prices dip; Apr-Jun lean season → prices rise
+            if month in [9, 10, 11]:  # Kharif harvest arrival
+                price_multiplier -= 0.07
+            elif month in [4, 5, 6]:  # Pre-kharif lean season
                 price_multiplier += 0.08
 
         # 3. Festival demand premium (Navratri, Diwali, Eid windows)

@@ -129,7 +129,7 @@ function MainDashboard() {
     if (masterResult) {
       const allocKg = masterResult.supply?.allocated_kg || 0;
       const pv = Object.values(predictedPrices).filter(x => x > 0);
-      const avg = pv.length ? pv.reduce((a, b) => a + b, 0) / pv.length : (crop === 'Onion' ? 50 : crop === 'Rice' ? 48 : 34);
+      const avg = pv.length ? pv.reduce((a, b) => a + b, 0) / pv.length : (crop === 'Onion' ? 50 : crop === 'Rice' ? 48 : crop === 'Maize' ? 24 : 34);
       const rev = Math.round(allocKg * avg * (1 + v / 100));
       const cost = masterResult.profit_summary?.estimated_logistics_cost || 0;
       const profit = Math.round(rev - cost);
@@ -159,7 +159,7 @@ function MainDashboard() {
       const res = await optimizeRoutes(crop, demands, vehicleCapacities);
       const delivered = (res.routes || []).reduce((a, r) => a + (r.load_kg || 0), 0);
       const pv = Object.values(predictedPrices).filter(x => x > 0);
-      const avg = pv.length ? pv.reduce((a, b) => a + b, 0) / pv.length : (crop === 'Onion' ? 50 : crop === 'Rice' ? 48 : 34);
+      const avg = pv.length ? pv.reduce((a, b) => a + b, 0) / pv.length : (crop === 'Onion' ? 50 : crop === 'Rice' ? 48 : crop === 'Maize' ? 24 : 34);
       const rev = Math.round(delivered * avg * (1 + priceMarkup / 100));
       const cost = Math.round((res.routing_summary?.total_distance_km || 0) * 100);
       setMasterResult(prev => ({

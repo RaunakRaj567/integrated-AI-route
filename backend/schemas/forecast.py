@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 
 class ForecastRequest(BaseModel):
-    crop: str = Field(..., description="Crop name: Wheat, Onion, Rice")
+    crop: str = Field(..., description="Crop name: Wheat, Onion, Rice, Maize")
     date: str = Field(..., description="Prediction date YYYY-MM-DD")
 
 class MarketForecastItem(BaseModel):
