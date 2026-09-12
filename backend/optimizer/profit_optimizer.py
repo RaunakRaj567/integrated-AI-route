@@ -77,13 +77,22 @@ def solve_profit_allocation(
     market_details_input = {}
 
     total_raw_demand = sum(max(0.0, expected_demands.get(loc["name"], 0.0)) for loc in LOCATIONS if not loc["is_depot"])
-    demand_scale_factor = (available_quantity_kg / total_raw_demand) if (total_raw_demand > 0 and available_quantity_kg > total_raw_demand) else 1.0
 
     for loc in LOCATIONS:
         name = loc["name"]
         pred_price = predicted_prices.get(name, 0.0)
         raw_demand = max(0.0, expected_demands.get(name, 0.0))
-        demand = round(raw_demand * demand_scale_factor, 2) if not loc["is_depot"] else 0.0
+
+        # 1. Proportional Supply Distribution:
+        # If supply <= market demand, distribute the WHOLE available supply in exact same ratio as demand
+        # If supply > market demand, cap allocation at market demand (leftover supply goes to warehouse storage)
+        if total_raw_demand > 0 and available_quantity_kg <= total_raw_demand:
+            demand = round((raw_demand / total_raw_demand) * available_quantity_kg, 2) if not loc["is_depot"] else 0.0
+        elif total_raw_demand > 0 and available_quantity_kg > total_raw_demand:
+            demand = raw_demand if not loc["is_depot"] else 0.0
+        else:
+            demand = raw_demand if not loc["is_depot"] else 0.0
+
         final_price = round(pred_price * markup_multiplier, 2)
         transport_cost_per_kg = estimate_logistics_cost_per_kg(loc["est_km_from_depot"])
         net_contrib_per_kg = final_price - transport_cost_per_kg

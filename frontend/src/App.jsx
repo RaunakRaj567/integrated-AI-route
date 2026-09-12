@@ -182,6 +182,14 @@ function MainDashboard() {
     finally { setOptimizing(false); }
   };
 
+  const handleWarehouseStore = (leftoverKg) => {
+    const tons = (leftoverKg / 1000).toFixed(1);
+    setStatusMessage({
+      type: 'success',
+      text: `📦 Warehouse Storage Initiated: ${tons} tons of surplus ${crop} registered for Phase 2 warehouse storage integration.`
+    });
+  };
+
   const totalDemand = Object.values(demands).reduce((a, v) => a + (Number(v) || 0), 0);
 
   return (
@@ -258,6 +266,7 @@ function MainDashboard() {
               onAllocate={handleAllocate}
               onOptimizeRoutes={handleOptimizeRoutes}
               onMasterOptimize={handleMasterOptimize}
+              onWarehouseStore={handleWarehouseStore}
               loadingForecast={loadingForecast}
               allocating={allocating}
               optimizing={optimizing}

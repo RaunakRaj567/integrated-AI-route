@@ -1,6 +1,6 @@
 // frontend/src/components/DemandPanel.jsx
 import React, { useState } from 'react';
-import { Sparkles, MapPin, RefreshCw, ChevronRight, Plus, Minus, TrendingUp, Calculator, Truck, ArrowUpRight } from 'lucide-react';
+import { Sparkles, MapPin, RefreshCw, ChevronRight, Plus, Minus, TrendingUp, Calculator, Truck, ArrowUpRight, Warehouse } from 'lucide-react';
 
 const CROPS = ['Wheat', 'Rice', 'Onion', 'Maize'];
 
@@ -31,7 +31,7 @@ export default function DemandPanel({
   demands, predictedPrices = {},
   vehicleCapacities = [20000, 22000, 25000, 28000, 30000],
   onDemandChange, onFetchForecast,
-  onAllocate, onOptimizeRoutes, onMasterOptimize,
+  onAllocate, onOptimizeRoutes, onMasterOptimize, onWarehouseStore,
   loadingForecast, allocating, optimizing, locations,
 }) {
   const [unitMode, setUnitMode] = useState('tons');
@@ -43,6 +43,9 @@ export default function DemandPanel({
   const maxTransportCapacityKg = vehicleCapacities.reduce((a, b) => a + b, 0);
   const maxTransportCapacityTons = (maxTransportCapacityKg / 1000).toFixed(0);
   const isExceedingCapacity = availableSupply > maxTransportCapacityKg;
+
+  const leftoverKg = Math.max(0, availableSupply - totalDemandKg);
+  const isSupplyLess = availableSupply < totalDemandKg;
 
   const priceVals = Object.values(predictedPrices).filter(v => v > 0);
   const mlAvgPrice = priceVals.length > 0
@@ -172,17 +175,48 @@ export default function DemandPanel({
           {/* Storage & Fleet Transport Limit Reminder Tag */}
           <div style={{
             marginTop: '0.4rem',
-            padding: '0.4rem 0.6rem',
-            background: isExceedingCapacity ? 'var(--amber-pale)' : 'var(--bg-base)',
-            border: `1px solid ${isExceedingCapacity ? '#D4B88A' : 'var(--beige-border)'}`,
+            padding: '0.55rem 0.7rem',
+            background: leftoverKg > 0 ? 'var(--amber-pale)' : 'var(--bg-base)',
+            border: `1px solid ${leftoverKg > 0 ? '#D4B88A' : 'var(--beige-border)'}`,
             borderRadius: 'var(--radius-xs)',
           }}>
-            <p style={{ fontSize: '0.65rem', color: isExceedingCapacity ? 'var(--amber-warm)' : 'var(--text-muted)', margin: 0, fontWeight: isExceedingCapacity ? 600 : 400 }}>
-              {isExceedingCapacity
-                ? `⚠️ Fleet Storage Reminder: Available supply (${(availableSupply / 1000).toFixed(1)}t) exceeds max transport fleet capacity of ${maxTransportCapacityTons} tons. Surplus ${((availableSupply - maxTransportCapacityKg)/1000).toFixed(1)}t will remain in warehouse storage.`
-                : `📦 Storage & Transport Limit: Max fleet transportation capacity is ${maxTransportCapacityTons} tons across 5 trucks.`
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+              <span className="text-label-caps" style={{ fontSize: '0.62rem', color: leftoverKg > 0 ? 'var(--amber-warm)' : 'var(--text-faint)' }}>
+                Leftover Supply (Surplus)
+              </span>
+              <span className="font-mono-data" style={{ fontSize: '0.75rem', fontWeight: 700, color: leftoverKg > 0 ? 'var(--amber-warm)' : 'var(--text-muted)' }}>
+                {(leftoverKg / 1000).toFixed(1)} tons
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.63rem', color: 'var(--text-muted)', margin: '0 0 0.45rem', lineHeight: '1.3' }}>
+              {isSupplyLess
+                ? `✨ Available supply (${(availableSupply / 1000).toFixed(1)}t) is 100% allocated across markets in exact demand ratio.`
+                : leftoverKg > 0
+                ? `📦 Supply (${(availableSupply / 1000).toFixed(1)}t) exceeds market demand (${(totalDemandKg / 1000).toFixed(1)}t). Leftover: ${(leftoverKg / 1000).toFixed(1)}t.`
+                : `✅ All available supply (${(availableSupply / 1000).toFixed(1)}t) is fully allocated to market demand.`
               }
             </p>
+
+            {/* Warehouse Storage Button (Phase 2 Integration) */}
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => onWarehouseStore && onWarehouseStore(leftoverKg)}
+              style={{
+                width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                padding: '0.45rem 0.6rem',
+                fontSize: '0.68rem', fontWeight: 600,
+                background: 'var(--bg-surface)',
+                border: '1.5px solid var(--beige-border)',
+                borderRadius: 'var(--radius-xs)',
+                cursor: 'pointer',
+              }}
+            >
+              <Warehouse size={13} color="var(--green-deep)" />
+              Store Leftover in Warehouse (Phase 2)
+            </button>
           </div>
         </div>
 
