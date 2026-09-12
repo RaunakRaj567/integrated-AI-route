@@ -156,7 +156,18 @@ function MainDashboard() {
   const handleOptimizeRoutes = async () => {
     setOptimizing(true); setStatusMessage(null); setSelectedVehicleId(null);
     try {
-      const res = await optimizeRoutes(crop, demands, vehicleCapacities);
+      // Scale market demands proportionally to availableSupply if supply < total market demand
+      let effectiveDemands = { ...demands };
+      const totalDemandKg = Object.values(demands).reduce((a, v) => a + (Number(v) || 0), 0);
+      if (totalDemandKg > 0 && availableSupply < totalDemandKg) {
+        const scale = availableSupply / totalDemandKg;
+        Object.keys(effectiveDemands).forEach(loc => {
+          effectiveDemands[loc] = Math.round(effectiveDemands[loc] * scale);
+        });
+        setDemands(effectiveDemands);
+      }
+
+      const res = await optimizeRoutes(crop, effectiveDemands, vehicleCapacities);
       const delivered = (res.routes || []).reduce((a, r) => a + (r.load_kg || 0), 0);
       const pv = Object.values(predictedPrices).filter(x => x > 0);
       const avg = pv.length ? pv.reduce((a, b) => a + b, 0) / pv.length : (crop === 'Onion' ? 50 : crop === 'Rice' ? 48 : crop === 'Maize' ? 24 : 34);
@@ -167,7 +178,7 @@ function MainDashboard() {
         profit_summary: prev?.profit_summary || { expected_revenue: rev, estimated_logistics_cost: cost, expected_net_profit: rev - cost, expected_margin_percent: rev > 0 ? Number(((rev - cost) / rev * 100).toFixed(2)) : 0 },
         routing_summary: res.routing_summary, routes: res.routes || [],
       }));
-      setStatusMessage({ type: 'success', text: `Routing solved — ${res.routing_summary?.vehicles_used || res.routes?.length || 0} trucks · ${res.routing_summary?.total_distance_km || 0} km · Transport cost ₹${cost.toLocaleString()}` });
+      setStatusMessage({ type: 'success', text: `Routing solved for ${(delivered / 1000).toFixed(1)}t supply — ${res.routing_summary?.vehicles_used || res.routes?.length || 0} trucks · ${res.routing_summary?.total_distance_km || 0} km · Transport cost ₹${cost.toLocaleString()}` });
     } catch (err) { setStatusMessage({ type: 'error', text: `Route optimization failed: ${err.message}` }); }
     finally { setOptimizing(false); }
   };
@@ -177,6 +188,16 @@ function MainDashboard() {
     try {
       const res = await masterOptimize({ crop, date, available_quantity_kg: availableSupply, price_adjustment_percent: priceMarkup, coverage_mode: coverageMode, overrides: demands });
       setMasterResult(res);
+
+      // Update market demands in UI to reflect exact allocated supply
+      const allocatedMap = {};
+      (res.markets || []).forEach(m => {
+        if (m.location !== 'Delhi') allocatedMap[m.location] = m.allocated_kg;
+      });
+      if (Object.keys(allocatedMap).length > 0) {
+        setDemands(allocatedMap);
+      }
+
       setStatusMessage({ type: 'success', text: `Full optimization complete for ${crop} — ${((res.supply?.allocated_kg || 0) / 1000).toFixed(1)}t across ${res.routing_summary?.vehicles_used || 0} trucks · Net Profit ₹${(res.profit_summary?.expected_net_profit || 0).toLocaleString()}` });
     } catch (err) { setStatusMessage({ type: 'error', text: `Optimization failed: ${err.message}` }); }
     finally { setOptimizing(false); }
